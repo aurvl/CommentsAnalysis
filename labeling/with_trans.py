@@ -6,15 +6,16 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification, Text
 #   - comments_only.csv avec colonne "commentaire"
 #   - sinon comments.csv avec "author","text"
 try:
-    df = pd.read_csv("comments_only.csv", encoding="utf-8")
-    texts = df["commentaire"].astype(str).tolist()
+    df = pd.read_csv("data/comments.csv", encoding="utf-8")
+    df["author"] = df["author"].astype(str)
+    df["text"]   = df["text"].astype(str)
+    df["commentaire"] = df["author"].fillna("") + " " + df["text"].fillna("")
+    df = df[["commentaire"]].copy()
+    texts = df["commentaire"].tolist()
 except FileNotFoundError:
-    df2 = pd.read_csv("comments.csv", encoding="utf-8")
-    df2["author"] = df2["author"].astype(str)
-    df2["text"]   = df2["text"].astype(str)
-    df2["commentaire"] = df2["author"].fillna("") + " " + df2["text"].fillna("")
-    texts = df2["commentaire"].tolist()
-    df = df2[["commentaire"]].copy()
+    df = pd.read_csv("data/comments_only.csv", encoding="utf-8")
+    df["commentaire"] = df["text"].astype(str)
+    texts = df["commentaire"].tolist()
 
 MODEL = "cardiffnlp/twitter-xlm-roberta-base-sentiment"
 
@@ -35,24 +36,28 @@ pipe = TextClassificationPipeline(
 preds = pipe(texts)
 labels_bin = [1 if p["label"].lower() == "positive" else 0 for p in preds]
 
-# 4) Map en binaire
-def to_bin(p):
-    if isinstance(p, list):
-        best = max(p, key=lambda x: x["score"])
-        label = best["label"].lower()
-    else:
-        label = p["label"].lower()
-    return 1 if label == "positive" else 0
+# 4) Attach to df
+def best_label(obj):
+    if isinstance(obj, list):
+        obj = max(obj, key=lambda x: x["score"])
+    return obj["label"], float(obj["score"])
 
-labels_bin = [to_bin(p) for p in preds]
+labels, scores = zip(*[best_label(p) for p in preds])
+df["label_raw"] = labels
+df["score"] = scores
+df["label_bin"] = (
+    df["label_raw"].str.lower()
+      .map({"positive": 1, "neutral": 0, "negative": 0})
+      .fillna(0).astype(int)
+)
 
 # 5) Sauvegarde + résumé
-out = "comments_labeled_binary_hf.csv"
+out = "labeling/comments_labeled_trans.csv"
 df.to_csv(out, index=False, encoding="utf-8-sig")
 
 n_total = len(df)
-n_pos = int(sum(labels_bin))
+n_pos = int((df["label_bin"] == 1).sum())
 n_neg = n_total - n_pos
-print(f"✅ {n_total} commentaires labellisés → {out}")
+print(f"✅ {n_total} commentaires labellises → {out}")
 print(f"   → {n_pos} positifs (1)")
-print(f"   → {n_neg} négatifs/neutres (0)")
+print(f"   → {n_neg} negatifs/neutres (0)")

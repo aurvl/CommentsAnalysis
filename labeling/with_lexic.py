@@ -41,12 +41,13 @@ def label_binary(text):
 df["label"] = df["commentaire"].apply(label_binary)
 
 # Sauvegarde
-df[["commentaire","label"]].to_csv("comments_labeled_binary.csv", index=False, encoding="utf-8-sig")
+out = "labeling/comments_labeled_lexic.csv"
+df[["commentaire","label"]].to_csv(out, index=False, encoding="utf-8-sig")
 
 # Résumé rapide
 n_total = len(df)
 n_pos = (df["label"] == 1).sum()
 n_neg = n_total - n_pos
-print(f"✅ {n_total} commentaires labellisés → comments_labeled_binary.csv")
+print(f"✅ {n_total} commentaires labellisés → {out}")
 print(f"   → {n_pos} positifs (1)")
 print(f"   → {n_neg} négatifs/neutres (0)")
