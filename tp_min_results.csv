@@ -1,0 +1,4 @@
+﻿model;accuracy
+DecisionTree;0.7889060092449923
+LogisticRegression;0.7796610169491526
+LinearSVC;0.7889060092449923

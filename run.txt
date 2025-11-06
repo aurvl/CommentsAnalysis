@@ -1,0 +1,8 @@
+download the comments from ytb
+python.exe -m yt_dlp --skip-download --write-comments -o "%(id)s" "https://www.youtube.com/watch?v=VKancdDIpOU"
+
+label
+comv et ccvnet
+
+classification
+tp_min_models
